@@ -27,6 +27,10 @@
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js';      
 
       var renderer, controls, scene, camera;
+      var LASTOBJECT = null;
+      var SCALE_CHECK = false;
+      var FLICKERING = false;
+      var TORUSARR = [];
 
       window.onload = function() {
 
@@ -48,10 +52,13 @@
 
 
 
-        renderer.domElement.onclick = function( e ){
-          
-            console.log('Yay! We clicked!');
-
+        renderer.domElement.onmousedown = function(e){
+            
+            console.log(e);
+            if(e.shiftKey){
+              controls.enabled=false;
+              
+            
             var pixel_coords = new THREE.Vector2( e.clientX, e.clientY );
 
             console.log('Pixel coords', pixel_coords);
@@ -68,13 +75,69 @@
             var raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(vp_coords_near, camera);
             var intersects = raycaster.intersectObject(invisible_plane);
+            if(intersects.length === 0) return;
 
             console.log('Ray to Invisible Plane', intersects[0].point);
 
-            // update cube position
-            cube.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z);
+            if(intersects.length >0){
+              var geometry = new THREE.TorusKnotGeometry( 10, 3, 100, 16 ); 
+              var material = new THREE.MeshStandardMaterial( {color: 0xFF69B4, side: THREE.DoubleSide} ); 
+              var pinktorusKnot = new THREE.Mesh( geometry, material ); 
 
-          };
+              pinktorusKnot.position.copy(intersects[0].point);      
+              scene.add( pinktorusKnot );
+              TORUSARR.push(pinktorusKnot);
+
+              LASTOBJECT = pinktorusKnot;
+              SCALE_CHECK = true;
+            }
+            }
+
+            else{
+              controls.enabled = true;
+            }
+            // update cube position
+
+        };
+        
+        renderer.domElement.onmousemove = function(event){
+          if(!SCALE_CHECK || !LASTOBJECT){
+            return;
+          }
+          var cam_sensitivity = 0.01;
+          var torus_scale = -event.movementY * cam_sensitivity;
+        
+          var current = LASTOBJECT.scale.x;
+          var next = current + torus_scale;
+
+          if (Math.abs(next) < 0.001) {
+            if (next < 0) {
+              next = -0.001;   // tiny negative
+            } 
+            else {
+              next = 0.001;    // tiny positive
+            }
+          }
+
+
+          // If scale crosses zero, toggle color
+          if (current * next < 0) {
+            var currentHex = LASTOBJECT.material.color.getHex();
+
+            if (currentHex === 0xFF69B4) {
+              LASTOBJECT.material.color.set(0x7CFC00); // switch to green
+            } else {
+              LASTOBJECT.material.color.set(0xFF69B4); // switch to pink
+            }
+          }
+              LASTOBJECT.scale.set(next, next, next);
+        }
+
+
+        renderer.domElement.onmouseup = function(e){
+          SCALE_CHECK = false;
+          controls.enabled = true;
+        }
 
 
         // setup lights
@@ -86,12 +149,12 @@
         scene.add( light );
 
         // configure cube
-        var geometry = new THREE.BoxGeometry( 20, 20, 20 );
-        var material = new THREE.MeshStandardMaterial({ color: 0xffffff, wireframe: true });
+        var geometry = new THREE.TorusKnotGeometry( 10, 3, 100, 16 ); 
+        var material = new THREE.MeshStandardMaterial( { color: 0xffff00 } ); 
+        var torusKnot = new THREE.Mesh( geometry, material ); scene.add( torusKnot );
+        TORUSARR.push(torusKnot);
 
-        var cube = new THREE.Mesh( geometry, material );
-
-        scene.add( cube );
+    
 
 
 
@@ -115,6 +178,12 @@
         // interaction
         controls = new OrbitControls( camera, renderer.domElement );
 
+        window.onkeypress = function(e){
+          if(e.key === 'f'){
+            FLICKERING = !FLICKERING;
+          }
+        }
+
         // call animation/rendering loop
         animate();
         
@@ -124,12 +193,30 @@
 
         requestAnimationFrame( animate );
 
+        if(FLICKERING){
+          for (let i = 0; i < TORUSARR.length; i++) {
+            TORUSARR[i].material.opacity = Math.random();
+            TORUSARR[i].material.transparent = true;
+            TORUSARR[i].material.needsUpdate = true;
+          }     
+        }
+        else{
+          for(let i = 0; i < TORUSARR.length; i++){
+            TORUSARR[i].material.opacity = 0.7;
+          }
+        }
+
+
+      
+
         // and here..
         controls.update();
         renderer.render( scene, camera );
-        
-      };
+    }
+      
     </script>
   </head>
-  <body></body>
+  <body>
+
+  </body>
 </html>
