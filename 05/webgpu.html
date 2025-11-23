@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Assignment 3 - polycam webgpu</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #222;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+
+  <!-- Babylon.js + GLTF loader -->
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylon.glTF2FileLoader.min.js"></script>
+
+</head>
+<body>
+
+<canvas id="webgpu-canvas"></canvas>
+
+<script type="module">
+
+  const canvas = document.getElementById("webgpu-canvas");
+
+  // start engine webgpu
+  let engine = await BABYLON.WebGPUEngine.CreateAsync(canvas);
+
+  await engine.initAsync();
+
+  // create scene
+  const scene = new BABYLON.Scene(engine);
+
+  await BABYLON.SceneLoader.AppendAsync("", "polycamobjfr.glb", scene);
+
+  scene.createDefaultCameraOrLight(true, true, true);
+
+  scene.activeCamera.attachControl(canvas, true);
+
+  engine.runRenderLoop(() => {
+    scene.render();
+  });
+
+  window.addEventListener("resize", () => {
+    engine.resize();
+  });
+
+</script>
+
+</body>
+</html>
